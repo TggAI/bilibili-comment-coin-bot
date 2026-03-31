@@ -1,0 +1,21 @@
+credentials.json
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Runtime / local data
+logs/
+coin_log.json
+processed_users.txt
+videos_meta.json
+comments*.xlsx
+*.xlsx.bak
+
+# macOS
+.DS_Store

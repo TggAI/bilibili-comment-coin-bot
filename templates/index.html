@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评论采集 · B站</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--cream:#FAF9F6;--cream2:#F3F1EC;--cream3:#EAE6DC;--border:#DDD9CF;--text:#1A1714;--text2:#4A4540;--text3:#857F78;--text4:#B0AAA2;--orange:#C96442;--orange2:#E07050;--orange-bg:#FDF0EB;--green:#2A7D5B;--green-bg:#EDF7F3;--amber:#9A6B1C;--amber-bg:#FEF6E4;--red:#B93232;--red-bg:#FEF0F0;--radius:8px}
+html,body{height:100%;background:var(--cream);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.shell{display:grid;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;padding:0 24px;background:#fff;border-bottom:1px solid var(--border);gap:14px}
+.logo-mark{width:28px;height:28px;background:var(--orange);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+.logo-text{font-family:Lora,serif;font-size:16px;font-weight:600}
+.logo-sep{color:var(--border)} .logo-sub{color:var(--text3);font-size:13px}
+.topbar-right{margin-left:auto}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;background:var(--cream2);color:var(--text3);border:1px solid var(--border)}
+.status-pill.running{background:var(--green-bg);color:var(--green);border-color:#B8E0D0}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.status-pill.running .status-dot{animation:bl 1.2s infinite}@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+.main{display:grid;grid-template-columns:300px 1fr;overflow:hidden}
+.sidebar{background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-top{overflow-y:auto;flex-shrink:0;max-height:60%}
+.sb-section{padding:16px 18px;border-bottom:1px solid var(--border)}
+.section-label{font-size:10.5px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;color:var(--text4);margin-bottom:10px}
+.url-field{width:100%;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;font-size:13px;outline:none}
+.url-field:focus{border-color:var(--orange)}
+.btn-primary{width:100%;background:var(--orange);color:#fff;border:none;border-radius:var(--radius);padding:9px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-cancel{width:100%;background:#fff;color:var(--red);border:1px solid var(--red);border-radius:var(--radius);padding:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;display:none}
+.btn-cancel:hover{background:var(--red-bg)}
+.log-clear{font-size:11px;color:var(--orange);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stat{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+.stat-val{font-size:22px;font-weight:600;font-family:Lora,serif}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.stat.orange .stat-val{color:var(--orange)}.stat.green .stat-val{color:var(--green)}.stat.amber .stat-val{color:var(--amber)}
+.coin-count-box{font-size:13px;color:var(--text2);padding:8px 10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius)}
+.coin-count-box strong{font-size:18px;font-family:Lora,serif;color:var(--orange);margin:0 4px}
+.risk-alert{display:none;margin-top:7px;padding:7px 9px;background:var(--red-bg);border:1px solid #EFBEBE;border-radius:var(--radius);font-size:11.5px;color:var(--red);gap:5px;align-items:flex-start}
+.risk-alert.show{display:flex}
+.progress-wrap{display:flex;flex-direction:column;gap:6px}
+.progress-head{display:flex;justify-content:space-between;font-size:12px}
+.progress-track{height:4px;background:var(--cream2);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--orange),var(--orange2));width:0%;transition:width .4s}
+.user-badge{padding:7px 9px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;display:flex;gap:6px;align-items:center;min-height:32px}
+.log-wrap{flex:1;min-height:160px;display:flex;flex-direction:column;overflow:hidden;background:var(--cream)}
+.log-head{padding:8px 14px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);background:#fff;font-size:10.5px;text-transform:uppercase;color:var(--text4)}
+#log{flex:1;overflow-y:auto;padding:8px 12px;font-family:monospace;font-size:11px;line-height:1.8}
+.log-line{display:flex;gap:5px}.log-line .ts{color:var(--text4)}.log-success .msg{color:var(--green)}.log-warn .msg{color:var(--amber)}.log-error .msg{color:var(--red)}
+.content{display:flex;flex-direction:column;overflow:hidden;background:var(--cream)}
+.video-tabs-bar{background:#fff;border-bottom:1px solid var(--border);display:flex;overflow-x:auto;min-height:44px}
+.video-tab{display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;border-right:1px solid var(--border);cursor:pointer;white-space:nowrap;font-size:13px;color:var(--text3);border-bottom:2px solid transparent}
+.video-tab:hover{background:var(--cream)}.video-tab.active{color:var(--orange);border-bottom-color:var(--orange);background:var(--orange-bg)}
+.tab-del{display:none;width:16px;height:16px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:12px;color:var(--text4);line-height:1;padding:0;flex-shrink:0}
+.video-tab:hover .tab-del{display:flex;align-items:center;justify-content:center}
+.tab-del:hover{background:var(--red-bg);color:var(--red)}
+.tab-title{max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.tab-count{font-size:11px;background:var(--cream2);border:1px solid var(--border);border-radius:20px;padding:1px 7px}
+.tabs-empty{padding:0 20px;display:flex;align-items:center;color:var(--text4);font-size:13px;font-style:italic}
+.toolbar{padding:10px 20px;display:flex;gap:10px;background:#fff;border-bottom:1px solid var(--border);align-items:center}
+.search-field{flex:1;max-width:300px;padding:7px 11px 7px 30px;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13'%3E%3Ccircle cx='5.5' cy='5.5' r='4' stroke='%23B0AAA2' fill='none'/%3E%3Cpath d='M9 9l2.5 2.5' stroke='%23B0AAA2'/%3E%3C/svg%3E") no-repeat 9px center;font-size:13px;outline:none}
+.per-page-sel{padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);font-size:12px}
+.row-count{font-size:12px;color:var(--text3);margin-left:auto}
+.table-wrap{flex:1;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;background:#fff;z-index:5}
+th{padding:9px 14px;text-align:left;font-size:11px;color:var(--text4);border-bottom:1px solid var(--border)}
+td{padding:10px 14px;border-bottom:1px solid var(--cream3);vertical-align:middle}
+tbody tr{background:#fff}tbody tr:hover{background:var(--cream)}
+.avatar-cell{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--border);background:var(--cream2)}
+.uname{font-weight:500;font-size:13px}.uid{font-size:11px;color:var(--text4);font-family:monospace}
+.comment-cell{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text2)}
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px}
+.badge-pending{background:var(--cream2);color:var(--text3);border:1px solid var(--border)}
+.badge-done{background:var(--green-bg);color:var(--green);border:1px solid #B8E0D0}
+.badge-no-video{background:var(--amber-bg);color:var(--amber);border:1px solid #E8D5A0}
+.badge-prev{background:var(--cream2);color:var(--text3);border:1px solid var(--border)}
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-top:1px solid var(--border);background:#fff}
+.page-btn{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:12px}
+.page-btn.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-info,.page-jump{font-size:12px;color:var(--text3)}
+.page-jump input{width:44px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:6px;margin:0 4px}
+.empty{text-align:center;padding:70px 20px;color:var(--text3)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:10px 14px;border-radius:var(--radius);font-size:13px;opacity:0;transform:translateY(12px);transition:.25s;z-index:999}
+.toast.show{opacity:1;transform:translateY(0)}
+.cookie-area{width:100%;min-height:60px;max-height:120px;resize:vertical;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:11px;font-family:monospace;outline:none;line-height:1.5}
+.cookie-area:focus{border-color:var(--orange)}
+.btn-cookie{width:100%;background:var(--cream2);color:var(--text2);border:1px solid var(--border);border-radius:var(--radius);padding:7px;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px}
+.btn-cookie:hover{background:var(--cream3)}
+.cookie-hint{font-size:10.5px;color:var(--text4);margin-top:5px}
+.schedule-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.toggle-wrap{display:flex;align-items:center;gap:7px;font-size:13px}
+.toggle{appearance:none;width:34px;height:18px;background:var(--cream3);border-radius:9px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle:checked{background:var(--orange)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s}
+.toggle:checked::after{left:18px}
+.interval-sel{flex:1;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);font-size:12px}
+.schedule-status{font-size:11px;color:var(--text3);padding:5px 8px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);min-height:26px}
+.btn-action{padding:4px 10px;font-size:11px;font-weight:600;border:1px solid var(--orange);color:var(--orange);background:#fff;border-radius:20px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.btn-action:hover:not(:disabled){background:var(--orange);color:#fff}
+.btn-action:disabled{opacity:.35;cursor:not-allowed}
+.btn-action.loading{border-color:var(--text4);color:var(--text4)}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="logo-mark">🎯</div>
+  <span class="logo-text">评论采集</span><span class="logo-sep">/</span><span class="logo-sub">哔哩哔哩</span>
+  <div class="topbar-right">
+    <div class="status-pill" id="statusPill"><div class="status-dot"></div><span id="statusText">空闲</span></div>
+  </div>
+</header>
+<div class="main">
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="sb-section">
+      <div class="section-label">目标视频</div>
+    <input class="url-field" id="urlInput" placeholder="BV 号或链接…" onkeydown="if(event.key==='Enter')startTask()"/>
+    <button class="btn-primary" id="startBtn" onclick="startTask()">开始爬取并投币</button>
+    <button class="btn-cancel" id="cancelBtn" onclick="cancelTask()">⏹ 终止当前任务</button>
+    </div>
+    <div class="sb-section">
+      <div class="section-label">数据统计</div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">总评论数</div></div>
+        <div class="stat orange"><div class="stat-val" id="statNew">—</div><div class="stat-lbl">本轮新增</div></div>
+        <div class="stat green"><div class="stat-val" id="statProcessed">—</div><div class="stat-lbl">已点赞投币</div></div>
+        <div class="stat amber"><div class="stat-val" id="statSkipped">—</div><div class="stat-lbl">无视频跳过</div></div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="section-label">投币记录</div>
+      <div class="coin-count-box">今日已投 <strong id="coinUsed">0</strong> 枚</div>
+      <div class="risk-alert" id="riskAlert"><span>🚨</span><span id="riskMsg"></span></div>
+    </div>
+    <div class="sb-section">
+      <div class="section-label">当前进度</div>
+      <div class="progress-wrap">
+        <div class="progress-head"><span>爬取进度</span><span id="progressCount">—</span></div>
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="user-badge"><span class="icon" id="ubIcon">⏳</span><span id="currentUser">等待开始…</span></div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="section-label">定时追踪</div>
+      <div class="schedule-row">
+        <div class="toggle-wrap">
+          <input type="checkbox" class="toggle" id="scheduleToggle" onchange="toggleSchedule()"/>
+          <span>自动定时</span>
+        </div>
+        <select class="interval-sel" id="scheduleInterval" onchange="onIntervalChange()" style="flex:0 0 auto;width:auto">
+          <option value="0.0833">每 5 分钟</option>
+          <option value="0.1667">每 10 分钟</option>
+          <option value="0.5">每 30 分钟</option>
+          <option value="1">每 1 小时</option>
+          <option value="2">每 2 小时</option>
+          <option value="4" selected>每 4 小时</option>
+          <option value="6">每 6 小时</option>
+          <option value="12">每 12 小时</option>
+          <option value="24">每 24 小时</option>
+          <option value="custom">自定义…</option>
+        </select>
+        <input type="number" id="scheduleCustom" min="1" max="168" placeholder="小时" style="display:none;width:64px;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:var(--cream)" onchange="onIntervalChange()"/>
+      </div>
+      <div class="schedule-status" id="scheduleStatus">未开启 — 开启后将按上方间隔自动爬取当前视频</div>
+    </div>
+    <div class="sb-section">
+      <div class="section-label">登录 Cookie</div>
+      <textarea class="cookie-area" id="cookieInput" placeholder="粘贴浏览器完整 Cookie 字符串…"></textarea>
+      <button class="btn-cookie" onclick="updateCookie()">更新 Cookie</button>
+      <div class="cookie-hint" id="cookieHint">将浏览器 bilibili.com 的 Cookie 完整粘贴即可</div>
+    </div>
+  </div>
+  <div class="log-wrap">
+    <div class="log-head"><span>运行日志</span><button type="button" class="log-clear" onclick="clearLog()">清空</button></div>
+    <div id="log"></div>
+  </div>
+</aside>
+<section class="content">
+  <div class="video-tabs-bar" id="videoTabsBar"></div>
+  <div class="toolbar">
+    <input class="search-field" id="searchInput" placeholder="搜索…" oninput="onSearch()"/>
+    <select class="per-page-sel" id="perPageSel" onchange="onPerPageChange()">
+      <option value="20">20 条/页</option><option value="50">50 条/页</option><option value="100">100 条/页</option>
+    </select>
+    <span class="row-count" id="rowCount"></span>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr><th style="width:190px">用户</th><th>评论内容</th><th style="width:96px">状态</th><th style="width:110px">时间</th><th style="width:76px">操作</th></tr></thead>
+    <tbody id="tableBody"><tr><td colspan="5"><div class="empty">暂无数据，左侧输入视频并开始</div></td></tr></tbody></table>
+  </div>
+  <div class="pagination" id="paginationBar" style="display:none">
+    <button class="page-btn" id="prevBtn" onclick="goPage(currentPage-1)">‹</button>
+    <span id="pageButtons"></span>
+    <button class="page-btn" id="nextBtn" onclick="goPage(currentPage+1)">›</button>
+    <span class="page-info" id="pageInfo"></span>
+    <span class="page-jump">跳至<input type="number" id="jumpInput" min="1" onkeydown="if(event.key==='Enter')goPage(+this.value)"/>页</span>
+  </div>
+</section>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let evtSource, currentBvid, currentPage=1, totalPages=1, searchTimer;
+function connectSSE(){if(evtSource)evtSource.close();evtSource=new EventSource('/api/stream');evtSource.onmessage=e=>handleEvent(JSON.parse(e.data));evtSource.onerror=()=>setTimeout(connectSSE,3000)}
+function handleEvent(msg){switch(msg.type){
+case'log':appendLog(msg.msg,msg.level);break;
+case'video_info':document.getElementById('urlInput').value=msg.bvid;loadVideoTabs(msg.bvid);break;
+case'progress':setProgress(msg.fetched,msg.total);break;
+case'user_progress':document.getElementById('currentUser').textContent=`[${msg.current}/${msg.total}] ${msg.uname}`;document.getElementById('ubIcon').textContent='⚙️';setRunning(true);break;
+case'new_rows':if(msg.bvid===currentBvid)loadTable();document.getElementById('statNew').textContent=msg.rows.length;loadVideoTabs();break;
+case'video_count':updateTabCount(msg.bvid,msg.count);break;
+case'update_row':if(msg.bvid===currentBvid)updateRowStatus(msg.uid,msg.status);if(msg.status.includes('完成'))document.getElementById('statProcessed').textContent=(+document.getElementById('statProcessed').textContent||0)+1;else document.getElementById('statSkipped').textContent=(+document.getElementById('statSkipped').textContent||0)+1;break;
+case'coin_update':document.getElementById('coinUsed').textContent=msg.used;break;
+case'risk_alert':showRiskAlert(msg.msg);break;
+case'done':setRunning(false);document.getElementById('currentUser').textContent='处理完成';document.getElementById('ubIcon').textContent='✅';showToast(`完成 — 投币 ${msg.stats.processed} 人`);loadTable();break;
+}}
+async function startTask(){const url=document.getElementById('urlInput').value.trim();if(!url){showToast('请输入视频链接');return;}['statNew','statProcessed','statSkipped'].forEach(id=>document.getElementById(id).textContent='0');setProgress(0,0);clearLog();const res=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});const d=await res.json();if(d.error){showToast(d.error);return;}setRunning(true)}
+async function loadVideoTabs(activeBvid){const res=await fetch('/api/videos');const data=await res.json();const list=data.videos||[];const bar=document.getElementById('videoTabsBar');if(!list.length){bar.innerHTML='<div class="tabs-empty">暂无视频，请先爬取</div>';return;}if(!activeBvid)activeBvid=currentBvid||list[0].bvid;if(!list.find(v=>v.bvid===activeBvid))activeBvid=list[0].bvid;bar.innerHTML=list.map(v=>`<div class="video-tab ${v.bvid===activeBvid?'active':''}" onclick="selectVideo('${v.bvid}')"><span class="tab-title" title="${esc(v.title||v.bvid)}">${esc(v.title||v.bvid)}</span><span class="tab-count" id="tab-count-${v.bvid}">${v.count}</span><button class="tab-del" title="删除" onclick="deleteVideo(event,'${v.bvid}')">×</button></div>`).join('');if(currentBvid!==activeBvid){currentBvid=activeBvid;currentPage=1;loadTable()}}
+function updateTabCount(bvid,c){const el=document.getElementById('tab-count-'+bvid);if(el)el.textContent=c}
+async function deleteVideo(e,bvid){e.stopPropagation();if(!confirm(`删除视频 ${bvid} 的所有记录？此操作不可撤销。`))return;const res=await fetch(`/api/videos/${bvid}`,{method:'DELETE'});const d=await res.json();if(d.ok){if(currentBvid===bvid){currentBvid=null;document.getElementById('tableBody').innerHTML='<tr><td colspan="5"><div class="empty">暂无数据</div></td></tr>';}loadVideoTabs();showToast('已删除')}else{showToast(d.error||'删除失败')}}
+function selectVideo(bvid){if(currentBvid===bvid)return;currentPage=1;loadVideoTabs(bvid)}
+async function loadTable(){if(!currentBvid)return;const q=document.getElementById('searchInput').value.trim();const pp=+document.getElementById('perPageSel').value;const url=`/api/comments?bvid=${currentBvid}&page=${currentPage}&per_page=${pp}${q?'&q='+encodeURIComponent(q):''}`;const res=await fetch(url);const d=await res.json();totalPages=d.pages||1;currentPage=d.page||1;renderTable(d.rows||[]);renderPagination(d.total);document.getElementById('rowCount').textContent=d.total?`共 ${d.total} 条`:''}
+function renderTable(rows){const tb=document.getElementById('tableBody');if(!rows.length){tb.innerHTML='<tr><td colspan="5"><div class="empty">无匹配数据</div></td></tr>';return}tb.innerHTML=rows.map(r=>{const av=r['头像URL']?`/api/avatar?url=${encodeURIComponent(r['头像URL'])}`:'';const t=(r['爬取时间']||'').replace(' ','\n');const uid=r.uid;return`<tr id="row-${uid}"><td><div class="avatar-cell"><img class="avatar" src="${av}" loading="lazy" onerror="this.style.opacity=.2"/><div><div class="uname">${esc(r['用户名']||'')}</div><div class="uid">${uid}</div></div></div></td><td><div class="comment-cell" title="${esc(r['评论内容']||'')}">${esc(r['评论内容']||'')}</div></td><td id="status-${uid}">${badge(r['状态']||'待处理')}</td><td style="font-size:11px;color:var(--text4);white-space:pre">${t}</td><td><button class="btn-action" id="action-${uid}" onclick="manualAction('${uid}',this)">投币</button></td></tr>`}).join('')}
+function badge(s){if(s.includes('完成'))return'<span class="badge badge-done">已完成</span>';if(s.includes('无视频'))return'<span class="badge badge-no-video">无视频</span>';if(s.includes('已处理过'))return'<span class="badge badge-prev">已处理过</span>';return'<span class="badge badge-pending">待处理</span>'}
+function updateRowStatus(uid,st){const cel=document.getElementById('status-'+uid);if(cel)cel.innerHTML=badge(st);const btn=document.getElementById('action-'+uid);if(btn){btn.classList.remove('loading');btn.disabled=false;btn.textContent='投币'}}
+function renderPagination(total){const bar=document.getElementById('paginationBar');const pages=Math.max(1,Math.ceil(total/(+document.getElementById('perPageSel').value)));if(pages<=1){bar.style.display='none';return}bar.style.display='flex';document.getElementById('prevBtn').disabled=currentPage<=1;document.getElementById('nextBtn').disabled=currentPage>=pages;document.getElementById('pageInfo').textContent=`第 ${currentPage} / ${pages} 页`;document.getElementById('jumpInput').value=currentPage;document.getElementById('jumpInput').max=pages;const btns=[];for(let i=1;i<=pages;i++){if(i===1||i===pages||(i>=currentPage-2&&i<=currentPage+2))btns.push(i);else if(btns[btns.length-1]!=='…')btns.push('…')}document.getElementById('pageButtons').innerHTML=btns.map(b=>b==='…'?'<span style="padding:0 4px;color:var(--text4)">…</span>':`<button class="page-btn ${b===currentPage?'active':''}" onclick="goPage(${b})">${b}</button>`).join('')}
+function goPage(p){p=Math.max(1,Math.min(totalPages,p));if(p===currentPage)return;currentPage=p;loadTable()}
+let _schedTimer=null,_nextRun=null,_countdownTimer=null;
+function toggleSchedule(){const on=document.getElementById('scheduleToggle').checked;on?startSchedule():stopSchedule()}
+function getIntervalHours(){const sel=document.getElementById('scheduleInterval').value;if(sel==='custom'){const v=parseFloat(document.getElementById('scheduleCustom').value);return(v>0&&v<=168)?v:null;}return +sel;}
+function onIntervalChange(){
+  const isCustom=document.getElementById('scheduleInterval').value==='custom';
+  document.getElementById('scheduleCustom').style.display=isCustom?'block':'none';
+  if(document.getElementById('scheduleToggle').checked)startSchedule();
+}
+function startSchedule(){
+  stopSchedule();
+  const url=document.getElementById('urlInput').value.trim();
+  if(!url){showToast('请先填写要追踪的视频链接');document.getElementById('scheduleToggle').checked=false;return;}
+  const h=getIntervalHours();
+  if(!h){showToast('请输入有效的小时数（1-168）');document.getElementById('scheduleToggle').checked=false;return;}
+  _nextRun=new Date(Date.now()+h*3600000);
+  _schedTimer=setTimeout(runScheduled,h*3600000);
+  _countdownTimer=setInterval(updateCountdown,10000);
+  updateCountdown();
+}
+function stopSchedule(){
+  if(_schedTimer){clearTimeout(_schedTimer);_schedTimer=null;}
+  if(_countdownTimer){clearInterval(_countdownTimer);_countdownTimer=null;}
+  _nextRun=null;
+  document.getElementById('scheduleStatus').textContent='未开启 — 开启后将按上方间隔自动爬取当前视频';
+}
+function updateCountdown(){
+  if(!_nextRun)return;
+  const diff=_nextRun-Date.now();
+  if(diff<=0){document.getElementById('scheduleStatus').textContent='正在启动…';return;}
+  const hh=Math.floor(diff/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('scheduleStatus').textContent=`下次运行: ${_nextRun.toLocaleTimeString('zh-CN',{hour12:false})}（剩余 ${hh?hh+'h ':''}`+`${pad(mm)}m ${pad(ss)}s）`;
+}
+async function runScheduled(){
+  const url=document.getElementById('urlInput').value.trim();
+  if(url){appendLog(`⏰ 定时触发: ${url}`,'info');await startTask();}
+  else{appendLog('⚠️ 定时触发但无视频链接，已跳过','warn');}
+  // 重新排定下次
+  if(document.getElementById('scheduleToggle').checked){
+    const h=getIntervalHours();
+    if(h){_nextRun=new Date(Date.now()+h*3600000);_schedTimer=setTimeout(runScheduled,h*3600000);updateCountdown();}
+  }
+}
+async function updateCookie(){const raw=document.getElementById('cookieInput').value.trim();if(!raw){showToast('请粘贴 Cookie 字符串');return;}const hint=document.getElementById('cookieHint');hint.textContent='保存中…';hint.style.color='var(--text3)';try{const res=await fetch('/api/update_cookie',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookie:raw})});const d=await res.json();if(d.ok){document.getElementById('cookieInput').value='';hint.textContent=`✅ 已更新，UID: ${d.dedeuserid}`;hint.style.color='var(--green)';showToast('Cookie 更新成功')}else{hint.textContent='❌ '+d.error;hint.style.color='var(--red)';showToast(d.error)}}catch(e){hint.textContent='❌ 请求失败';hint.style.color='var(--red)'}}
+async function manualAction(uid,btn){btn.disabled=true;btn.classList.add('loading');btn.textContent='…';try{const res=await fetch('/api/manual_action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid,source_bvid:currentBvid})});const d=await res.json();if(d.ok){updateRowStatus(uid,d.status);showToast(d.msg||'操作完成')}else{showToast(d.error||'操作失败');btn.classList.remove('loading');btn.disabled=false;btn.textContent='投币'}}catch(e){showToast('请求失败');btn.classList.remove('loading');btn.disabled=false;btn.textContent='投币'}}
+function onSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>{currentPage=1;loadTable()},300)}
+function onPerPageChange(){currentPage=1;loadTable()}
+function appendLog(m,l='info'){const log=document.getElementById('log');const d=document.createElement('div');d.className='log-line log-'+l;const t=new Date().toLocaleTimeString('zh-CN',{hour12:false});d.innerHTML=`<span class="ts">${t}</span><span class="msg">${esc(m)}</span>`;log.appendChild(d);log.scrollTop=log.scrollHeight}
+function clearLog(){document.getElementById('log').innerHTML=''}
+function setProgress(f,t){const pct=t>0?Math.round(f/t*100):0;document.getElementById('progressBar').style.width=pct+'%';document.getElementById('progressCount').textContent=t>0?`${f}/${t}`:'—'}
+function setRunning(r){document.getElementById('statusPill').className='status-pill'+(r?' running':'');document.getElementById('statusText').textContent=r?'运行中':'空闲';document.getElementById('startBtn').disabled=r;document.getElementById('startBtn').textContent=r?'运行中…':'开始爬取并投币';document.getElementById('cancelBtn').style.display=r?'block':'none'}
+async function cancelTask(){const btn=document.getElementById('cancelBtn');btn.disabled=true;btn.textContent='终止中…';const res=await fetch('/api/cancel',{method:'POST'});const d=await res.json();if(d.error){showToast(d.error);btn.disabled=false;btn.textContent='⏹ 终止当前任务';}else{showToast('已发送终止指令，当前用户处理完后停止')}}
+function showRiskAlert(m){const el=document.getElementById('riskAlert');document.getElementById('riskMsg').textContent=m;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),30000)}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),3000)}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+connectSSE();
+fetch('/api/stats').then(r=>r.json()).then(s=>{document.getElementById('statTotal').textContent=s.total_comments||'—';document.getElementById('statProcessed').textContent=s.processed_users||'—';document.getElementById('coinUsed').textContent=s.coins_used||0;if(s.running)setRunning(true);loadVideoTabs()});
+</script>
+</body>
+</html>

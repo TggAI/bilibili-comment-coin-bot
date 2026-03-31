@@ -2,4 +2,5 @@ bilibili-api-python
 pandas
 openpyxl
 fastapi
+httpx
 uvicorn[standard]
